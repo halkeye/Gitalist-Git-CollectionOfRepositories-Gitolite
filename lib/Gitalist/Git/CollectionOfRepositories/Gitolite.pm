@@ -164,7 +164,8 @@ Gitalist::Git::CollectionOfRepositories::Gitolite
 
 =head1 SYNOPSIS
 
-gitalist.conf:
+ gitalist.conf:
+
     <Model::CollectionOfRepos>
         class Gitalist::Git::CollectionOfRepositories::Gitolite
         # optional, /home/git/.gitolite.rc
@@ -175,9 +176,11 @@ gitalist.conf:
 
 =head1 DESCRIPTION
 
+Adds support for gitolite to gitalist
+
 =head1 SEE ALSO
 
-L<Gitalist::Git::CollectionOfRepositories>, L<Gitalist::Git::Repository>
+L<Gitalist>, L<Gitalist::Git::CollectionOfRepositories>, L<Gitalist::Git::Repository>
 
 =head1 AUTHORS
 
