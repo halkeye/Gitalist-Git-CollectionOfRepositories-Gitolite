@@ -24,7 +24,7 @@ my %WriteMakefileArgs = (
     "Gitalist" => "0.003009",
     "MooseX::Declare" => "0.32"
   },
-  "VERSION" => "0.001",
+  "VERSION" => "0.002",
   "test" => {
     "TESTS" => ""
   }
