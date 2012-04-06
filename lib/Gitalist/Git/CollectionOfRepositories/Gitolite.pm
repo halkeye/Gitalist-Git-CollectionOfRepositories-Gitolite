@@ -1,9 +1,8 @@
 use MooseX::Declare;
-#use IPC::System::Simple ();
-use warnings;
-use strict;
-use Data::Dumper;
-use File::Basename;
+use namespace::autoclean;
+#use warnings;
+#use strict;
+#use File::Basename;
 
 # ABSTRACT: Adds support for gitolite to gitalist
 
@@ -29,7 +28,7 @@ class Gitalist::Git::CollectionOfRepositories::Gitolite
         lazy     => 1,
     );
     
-    method implementation_class { 'Gitalist::Git::CollectionOfRepositories::GitoliteImpl' }
+    method implementation_class { 'Gitalist::Git::CollectionOfRepositories::Gitolite::Impl' }
     method debug_string { 'Chose ' . ref($self) }
 
     method extract_request_state ($ctx) {
@@ -39,7 +38,7 @@ class Gitalist::Git::CollectionOfRepositories::Gitolite
     }
 }
 
-class Gitalist::Git::CollectionOfRepositories::GitoliteImpl
+class Gitalist::Git::CollectionOfRepositories::Gitolite::Impl
 {
     use MooseX::Types::Common::String qw/NonEmptySimpleStr/;    
     use MooseX::Types::Path::Class qw/Dir/;
@@ -63,14 +62,14 @@ class Gitalist::Git::CollectionOfRepositories::GitoliteImpl
             /],
         default => sub {
             my $self = shift;
-            Gitalist::Git::CollectionOfRepositories::GitoliteImpl::Collection->new(%$self);
+            Gitalist::Git::CollectionOfRepositories::Gitolite::Collection->new(%$self);
         },
         lazy => 1,
     );
 
 }
 
-class Gitalist::Git::CollectionOfRepositories::GitoliteImpl::Collection
+class Gitalist::Git::CollectionOfRepositories::Gitolite::Collection
     extends Gitalist::Git::CollectionOfRepositories::FromListOfDirectories {
     use MooseX::Types::Common::String qw/NonEmptySimpleStr/;    
     use Gitalist::Git::Types qw/DirOrUndef ArrayRefOfDirs /;
@@ -161,3 +160,4 @@ class Gitalist::Git::CollectionOfRepositories::GitoliteImpl::Collection
         }
     );
 }
+
