@@ -158,3 +158,37 @@ class Gitalist::Git::CollectionOfRepositories::Gitolite::Collection
     );
 }
 
+=head1 NAME
+
+Gitalist::Git::CollectionOfRepositories::Gitolite
+
+=head1 SYNOPSIS
+
+gitalist.conf:
+    <Model::CollectionOfRepos>
+        class Gitalist::Git::CollectionOfRepositories::Gitolite
+        # optional, /home/git/.gitolite.rc
+        gitolite_conf /home/git/.gitolite.rc
+        # optional, defaults to /home/git/bin/
+        gitolite_bin_dir /home/git/bin/
+    </Model::CollectionOfRepos>
+
+=head1 DESCRIPTION
+
+=head1 SEE ALSO
+
+L<Gitalist::Git::CollectionOfRepositories>, L<Gitalist::Git::Repository>
+
+=head1 AUTHORS
+
+Gavin Mogan <halkeye@cpan.org>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2012 by Gavin Mogan
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.10.0 or,
+at your option, any later version of Perl 5 you may have available.
+
+=cut
