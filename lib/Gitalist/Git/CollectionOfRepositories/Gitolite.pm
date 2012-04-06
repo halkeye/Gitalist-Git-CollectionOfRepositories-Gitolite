@@ -71,9 +71,9 @@ class Gitalist::Git::CollectionOfRepositories::GitoliteImpl
 }
 
 class Gitalist::Git::CollectionOfRepositories::GitoliteImpl::Collection
-    extends Gitalist::Git::CollectionOfRepositories::FromDirectory {
+    extends Gitalist::Git::CollectionOfRepositories::FromListOfDirectories {
     use MooseX::Types::Common::String qw/NonEmptySimpleStr/;    
-    use Gitalist::Git::Types qw/DirOrUndef /;
+    use Gitalist::Git::Types qw/DirOrUndef ArrayRefOfDirs /;
     
     has remote_user => (
         is => 'ro',
@@ -125,29 +125,39 @@ class Gitalist::Git::CollectionOfRepositories::GitoliteImpl::Collection
         },
     );
 
-    method _build_repositories { 
-        my $ret = [];
+    has repos => (
+        isa      => ArrayRefOfDirs,
+        is       => 'ro',
+        coerce   => 1,
+        required => 1,
+        default  => sub {
+            my $self = shift;
+            my $ret = [];
 
-        my $user = ($self->remote_user || 'guest');
-        $user =~ s/\@.*$//; # trim off exchange domain
-        $user = lc $user;
+            my $user = ($self->remote_user || 'guest');
+            $user =~ s/\@.*$//; # trim off exchange domain
+            $user = lc $user;
 
-        my @repos;
-        eval {
-            {
-                no warnings;
-                @repos = gitolite::list_phy_repos();
-            }
+            # Lazy, so this forces git config to be loaded by calling repo_dir
+            $self->repo_dir->resolve();
 
-            foreach my $repo ( sort { lc $a cmp lc $b } @repos )
-            {
-                my $dir = $self->repo_dir->subdir($repo . '.git');
-                next unless -d $dir; 
-                next unless gitolite::can_read( $repo, $user);
-                push @$ret, Gitalist::Git::Repository->new($dir),
-            }
-        };
-        warn 'Error (', ref($self), '): ', $@ if $@;
-        return $ret;
-    }
+            my @repos;
+            eval {
+                {
+                    no warnings;
+                    @repos = gitolite::list_phy_repos();
+                }
+
+                foreach my $repo ( sort { lc $a cmp lc $b } @repos )
+                {
+                    my $dir = $self->repo_dir->subdir($repo . '.git');
+                    next unless -d $dir; 
+                    next unless gitolite::can_read( $repo, $user);
+                    push @$ret, $dir; #Gitalist::Git::Repository->new($dir),
+                }
+            };
+            warn 'Error (', ref($self), '): ', $@ if $@;
+            return $ret;
+        }
+    );
 }
