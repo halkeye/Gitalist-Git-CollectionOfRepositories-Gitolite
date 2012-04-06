@@ -9,14 +9,39 @@ use File::Basename;
 $ENV{GL_RC}||="/home/git/.gitolite.rc";
 $ENV{GL_BINDIR}||="/home/git/bin";
 
-class Gitalist::Git::CollectionOfRepositories::FromDirectory::Gitolite
+class Gitalist::Git::CollectionOfRepositories::Gitolite
     with Gitalist::Git::CollectionOfRepositoriesWithRequestState {
+
+    use MooseX::Types::Moose qw/HashRef/;
+    sub BUILDARGS {
+        my ($class, @args) = @_;
+        my $args = $class->next::method(@args);
+        my %collections = %{ delete $args->{collections} };
+        foreach my $name (keys %collections) {
+            my %args = %{$collections{$name}};
+            my $class = delete $args{class};
+            Class::MOP::load_class($class);
+            $collections{$name} = $class->new(%args);
+        }
+        my $ret = { %$args, collections => \%collections };
+        return $ret;
+    }
+
+    has remote_user_dispatch => (
+        isa => HashRef,
+        traits => ['Hash'],
+        required => 1,
+        handles => {
+            _get_collection_name_for_remote_user => 'get',
+        },
+    );
+    method implementation_class { 'Gitalist::Git::CollectionOfRepositories::GitoliteImpl' }
 
     method extract_request_state ($ctx) {
         return (remote_user => $ctx->request->remote_user);
     }
 }
-class Gitalist::Git::CollectionOfRepositories::FromDirectory::GitoliteImpl
+class Gitalist::Git::CollectionOfRepositories::GitoliteImpl
     extends Gitalist::Git::CollectionOfRepositories {
     use MooseX::Types::Moose qw/ HashRef Str /;
     use MooseX::Types::Common::String qw/NonEmptySimpleStr/;
