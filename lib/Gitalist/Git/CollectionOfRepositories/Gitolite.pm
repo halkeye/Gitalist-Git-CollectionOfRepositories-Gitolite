@@ -7,24 +7,26 @@ use File::Basename;
 
 # ABSTRACT: Adds support for gitolite to gitalist
 
-# GL_RC=/home/git/.gitolite.rc GL_BINDIR=/home/git/bin HOME=/home/git perl -I /home/git/bin -Mgitolite_env -Mgitolite -e 'print gitolite::report_basic("^","halkeye");'
-$ENV{GL_RC}||="/home/git/.gitolite.rc";
-$ENV{GL_BINDIR}||="/home/git/bin";
-
 class Gitalist::Git::CollectionOfRepositories::Gitolite
     with Gitalist::Git::CollectionOfRepositoriesWithRequestState 
 {
     use MooseX::Types::Common::String qw/NonEmptySimpleStr/;    
-    use Gitalist::Git::Types qw/ ArrayRefOfDirs Dir DirOrUndef /;
-    use MooseX::Types::Path::Class qw/Dir/;
+    use Gitalist::Git::Types qw/DirOrUndef /;
 
-    # Simple directory of repositories (for list)
-    has repo_dir => (
-        is => 'ro',
-        isa => DirOrUndef,
-        coerce => 1,
-        builder => '_build_repo_dir',
-        lazy => 1,
+    has gitolite_conf => (
+        is       => 'ro',
+        isa      => NonEmptySimpleStr,
+        default  => '/home/git/.gitolite.rc',
+        required => 0,
+    );
+
+    has gitolite_bin_dir => (
+        is       => 'ro',
+        isa      => DirOrUndef,
+        default  => '/home/git/bin',
+        required => 0,
+        coerce   => 1,
+        lazy     => 1,
     );
     
     method implementation_class { 'Gitalist::Git::CollectionOfRepositories::GitoliteImpl' }
@@ -32,14 +34,13 @@ class Gitalist::Git::CollectionOfRepositories::Gitolite
 
     method extract_request_state ($ctx) {
         return (
-            remote_user => $ctx->request->remote_user || $ENV{REMOTE_USR} || 'guest',
-            repo_dir => $self->repo_dir
+            remote_user => $ctx->request->remote_user || $ENV{REMOTE_USER} || 'gitweb',
         );
     }
 }
 
 class Gitalist::Git::CollectionOfRepositories::GitoliteImpl
-    extends Gitalist::Git::CollectionOfRepositories::FromDirectory {
+{
     use MooseX::Types::Common::String qw/NonEmptySimpleStr/;    
     use MooseX::Types::Path::Class qw/Dir/;
     use Moose::Util::TypeConstraints;
@@ -72,27 +73,64 @@ class Gitalist::Git::CollectionOfRepositories::GitoliteImpl
 class Gitalist::Git::CollectionOfRepositories::GitoliteImpl::Collection
     extends Gitalist::Git::CollectionOfRepositories::FromDirectory {
     use MooseX::Types::Common::String qw/NonEmptySimpleStr/;    
+    use Gitalist::Git::Types qw/DirOrUndef /;
     
     has remote_user => (
         is => 'ro',
         isa => NonEmptySimpleStr,
         required => 1,
     );
+
+    has gitolite_conf => (
+        is       => 'ro',
+        isa      => NonEmptySimpleStr,
+        default  => '/home/git/.gitolite.rc',
+        required => 0,
+    );
+
+    has gitolite_bin_dir => (
+        is       => 'ro',
+        isa      => DirOrUndef,
+        default  => '/home/git/bin',
+        required => 0,
+        coerce   => 1,
+        lazy     => 1,
+    );
+    
+    has repo_dir => (
+        isa      => DirOrUndef,
+        is       => 'ro',
+        required => 1,
+        coerce   => 1,
+        default  => sub {
+            my $self = shift;
+            # GL_RC=/home/git/.gitolite.rc GL_BINDIR=/home/git/bin HOME=/home/git perl -I /home/git/bin -Mgitolite_env -Mgitolite -e 'print gitolite::report_basic("^","halkeye");'
+            $ENV{GL_RC}     ||= $self->gitolite_conf . "";
+            $ENV{GL_BINDIR} ||= $self->gitolite_bin_dir . "";
+
+            local $ENV{HOME} = File::Basename::dirname($ENV{GL_RC});
+
+            # Gitolite does a lot of messing with envs so only load at runtime once everything is setup right (better for local)
+            unless ($INC{'gitolite'})
+            {
+                no warnings;
+
+                our $REPO_BASE;
+                require "$ENV{GL_BINDIR}/gitolite_env.pm";
+                require gitolite_rc;    gitolite_rc -> import;
+                require gitolite;       gitolite    -> import;
+                $ENV{GL_REPO_BASE_ABS} = ( $REPO_BASE =~ m(^/) ? $REPO_BASE : "$ENV{HOME}/$REPO_BASE" );
+            }
+            return $ENV{GL_REPO_BASE_ABS};
+        },
+    );
+
     method _build_repositories { 
         my $ret = [];
+
         my $user = ($self->remote_user || 'guest');
         $user =~ s/\@.*$//; # trim off exchange domain
         $user = lc $user;
-
-warn "here $user";
-        local $ENV{HOME} = File::Basename::dirname($ENV{GL_RC});
-
-        # Gitolite does a lot of messing with envs so only load at runtime once everything is setup right (better for local)
-        unless ($INC{'gitolite'})
-        {
-            no warnings;
-            require "$ENV{GL_BINDIR}/gitolite_env.pm";
-        }
 
         my @repos;
         eval {
@@ -100,7 +138,6 @@ warn "here $user";
                 no warnings;
                 @repos = gitolite::list_phy_repos();
             }
-            $self->repo_dir($ENV{GL_REPO_BASE_ABS});
 
             foreach my $repo ( sort { lc $a cmp lc $b } @repos )
             {
@@ -110,7 +147,7 @@ warn "here $user";
                 push @$ret, Gitalist::Git::Repository->new($dir),
             }
         };
-        warn $@ if $@;
+        warn 'Error (', ref($self), '): ', $@ if $@;
         return $ret;
     }
 }
