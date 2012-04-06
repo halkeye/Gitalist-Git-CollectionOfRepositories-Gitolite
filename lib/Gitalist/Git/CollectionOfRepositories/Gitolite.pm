@@ -1,8 +1,5 @@
 use MooseX::Declare;
 use namespace::autoclean;
-#use warnings;
-#use strict;
-#use File::Basename;
 
 # ABSTRACT: Adds support for gitolite to gitalist
 
