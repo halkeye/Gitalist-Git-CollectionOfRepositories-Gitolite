@@ -180,7 +180,8 @@ Adds support for gitolite to gitalist
 
 =head1 SEE ALSO
 
-L<Gitalist>, L<Gitalist::Git::CollectionOfRepositories>, L<Gitalist::Git::Repository>
+L<Gitalist>, L<Gitalist::Git::CollectionOfRepositories>, L<Gitalist::Git::Repository>, 
+L<https://github.com/broquaint/Gitalist>
 
 =head1 AUTHORS
 
